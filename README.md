@@ -11,6 +11,7 @@ Usage:
 
 Available Commands:
   help        Help about any command
+  push        Push to remote (setup upstream)
   start       Start a new ticket
 
 Flags:

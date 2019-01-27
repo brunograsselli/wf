@@ -52,3 +52,22 @@ func generateName(args []string) string {
 
 	return fmt.Sprintf(template, args[0], strings.Join(args[1:], "-"))
 }
+
+func Push(args []string) error {
+	currentBranch, err := git.CurrentBranch()
+	if err != nil {
+		return errors.New("error getting current branch")
+	}
+
+	if currentBranch == "master" {
+		return errors.New("current branch is master")
+	}
+
+	if err := git.PushWithUpstream(currentBranch); err != nil {
+		return errors.New("error pushing to remote")
+	}
+
+	fmt.Printf("Pushed to origin %s\n", currentBranch)
+
+	return nil
+}
