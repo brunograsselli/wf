@@ -50,5 +50,5 @@ func generateName(args []string) string {
 		template = defaultBranchNameTemplate
 	}
 
-	return fmt.Sprintf(template, args[1], strings.Join(args[2:], "-"))
+	return fmt.Sprintf(template, args[0], strings.Join(args[1:], "-"))
 }
