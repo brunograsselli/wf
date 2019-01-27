@@ -3,6 +3,7 @@ package git
 import (
 	"os/exec"
 	"regexp"
+	"strings"
 )
 
 var changedFiles = regexp.MustCompile(`[ MADRCU]{2}\s+(.*)`)
@@ -43,4 +44,13 @@ func Fetch() error {
 
 func Reset(mode string, source string) error {
 	return exec.Command("git", "reset", mode, source).Run()
+}
+
+func PushWithUpstream(remoteBranch string) error {
+	return exec.Command("git", "push", "--set-upstream", "origin", remoteBranch).Run()
+}
+
+func CurrentBranch() (string, error) {
+	branch, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	return strings.TrimSpace(string(branch)), err
 }
