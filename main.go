@@ -8,6 +8,8 @@ import (
 	"github.com/brunograsselli/workflow/git"
 )
 
+const defaultBranchNameTemplate = "%s/%s"
+
 func main() {
 	if len(os.Args) < 3 {
 		printAndExit("not enough arguments", 1)
@@ -49,5 +51,10 @@ func printAndExit(msg string, status int) {
 }
 
 func generateName(args []string) string {
-	return strings.Join(args[1:], "-")
+	template := os.Getenv("WF_BRANCH_NAME_TEMPLATE")
+	if template == "" {
+		template = defaultBranchNameTemplate
+	}
+
+	return fmt.Sprintf(template, args[1], strings.Join(args[2:], "-"))
 }
