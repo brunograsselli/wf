@@ -1,12 +1,15 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/brunograsselli/wf/git"
+
+	"github.com/pkg/errors"
 )
 
 const defaultBranchNameTemplate = "%s/%s"
@@ -68,6 +71,30 @@ func Push(args []string) error {
 	}
 
 	fmt.Printf("Pushed to origin %s\n", currentBranch)
+
+	return nil
+}
+
+var abc = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
+
+func OpenPullRequest(args []string) error {
+	remoteURL, err := git.RemoteURL("origin")
+	if err != nil {
+		return errors.Wrap(err, "error getting remote url")
+	}
+
+	branch, err := git.CurrentBranch()
+	if err != nil {
+		return errors.Wrap(err, "error getting current branch")
+	}
+
+	result := abc.FindAllStringSubmatch(remoteURL, -1)
+	if len(result) == 0 {
+		return errors.New("can't parse remote url")
+	}
+	github, user, repo := result[0][1], result[0][2], result[0][3]
+
+	return exec.Command("open", fmt.Sprintf("https://%s/%s/%s/pull/new/%s", github, user, repo, branch)).Run()
 
 	return nil
 }

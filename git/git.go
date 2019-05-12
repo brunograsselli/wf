@@ -54,3 +54,8 @@ func CurrentBranch() (string, error) {
 	branch, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
 	return strings.TrimSpace(string(branch)), err
 }
+
+func RemoteURL(remote string) (string, error) {
+	url, err := exec.Command("git", "remote", "get-url", "--push", remote).Output()
+	return strings.TrimSpace(string(url)), err
+}
