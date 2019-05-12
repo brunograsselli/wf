@@ -11,6 +11,7 @@ Usage:
 
 Available Commands:
   help        Help about any command
+  pr          Open a new pull request
   push        Push to remote (setup upstream)
   start       Start a new ticket
 
