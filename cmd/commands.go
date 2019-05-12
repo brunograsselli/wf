@@ -75,7 +75,7 @@ func Push(args []string) error {
 	return nil
 }
 
-var abc = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
+var remoteURLPattern = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
 
 func OpenPullRequest(args []string) error {
 	remoteURL, err := git.RemoteURL("origin")
@@ -88,7 +88,7 @@ func OpenPullRequest(args []string) error {
 		return errors.Wrap(err, "error getting current branch")
 	}
 
-	result := abc.FindAllStringSubmatch(remoteURL, -1)
+	result := remoteURLPattern.FindAllStringSubmatch(remoteURL, -1)
 	if len(result) == 0 {
 		return errors.New("can't parse remote url")
 	}
