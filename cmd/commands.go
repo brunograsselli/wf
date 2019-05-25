@@ -58,7 +58,7 @@ func StartTicket(args []string) error {
 		return errors.Wrapf(err, "error reseting to %s", defaultRemoteAndBranch)
 	}
 
-	newBranch := generateName(args)
+	newBranch := newBranchName(args)
 
 	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, defaultMasterBranch)
 	if err := git.Checkout("-b", newBranch); err != nil {
@@ -75,7 +75,7 @@ func StartTicket(args []string) error {
 	return nil
 }
 
-func generateName(args []string) string {
+func newBranchName(args []string) string {
 	template := os.Getenv("WF_BRANCH_NAME_TEMPLATE")
 	if template == "" {
 		template = defaultBranchNameTemplate
