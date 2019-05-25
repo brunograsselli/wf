@@ -59,3 +59,11 @@ func RemoteURL(remote string) (string, error) {
 	url, err := exec.Command("git", "remote", "get-url", "--push", remote).Output()
 	return strings.TrimSpace(string(url)), err
 }
+
+func Stash() error {
+	return exec.Command("git", "stash").Run()
+}
+
+func StashPop() error {
+	return exec.Command("git", "stash", "pop").Run()
+}

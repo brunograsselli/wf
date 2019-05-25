@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,8 +27,22 @@ func StartTicket(args []string) error {
 		return errors.Wrap(err, "error reading git status")
 	}
 
-	if status.HasChanges() {
-		return errors.New("found files to be committed")
+	hasChanges := status.HasChanges()
+	if hasChanges {
+		c, err := askForConfirmation("Found changes to be committed, would like to continue and move the changes?")
+		if err != nil {
+			return errors.Wrap(err, "error getting confirmation")
+		}
+
+		if !c {
+			fmt.Println("Aborting...")
+			return nil
+		}
+
+		fmt.Println("Stashing changes")
+		if err := git.Stash(); err != nil {
+			return errors.Wrap(err, "error stashing changes")
+		}
 	}
 
 	fmt.Printf("Updating %s branch\n", defaultMasterBranch)
@@ -48,6 +63,13 @@ func StartTicket(args []string) error {
 	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, defaultMasterBranch)
 	if err := git.Checkout("-b", newBranch); err != nil {
 		return errors.Wrapf(err, "error creating new branch '%s'", newBranch)
+	}
+
+	if hasChanges {
+		fmt.Println("Applying changes")
+		if err := git.StashPop(); err != nil {
+			return errors.Wrap(err, "error applying changes")
+		}
 	}
 
 	return nil
@@ -99,4 +121,19 @@ func OpenPullRequest(args []string) error {
 	github, user, repo := result[0][1], result[0][2], result[0][3]
 
 	return exec.Command("open", fmt.Sprintf("https://%s/%s/%s/pull/new/%s", github, user, repo, branch)).Run()
+}
+
+func askForConfirmation(s string) (bool, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("%s [y/N]: ", s)
+
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false, err
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+
+	return response == "y", nil
 }
