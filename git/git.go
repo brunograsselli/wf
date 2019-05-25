@@ -46,8 +46,8 @@ func Reset(mode string, source string) error {
 	return exec.Command("git", "reset", mode, source).Run()
 }
 
-func PushWithUpstream(remoteBranch string) error {
-	return exec.Command("git", "push", "--set-upstream", "origin", remoteBranch).Run()
+func PushWithUpstream(remote string, branch string) error {
+	return exec.Command("git", "push", "--set-upstream", remote, branch).Run()
 }
 
 func CurrentBranch() (string, error) {
