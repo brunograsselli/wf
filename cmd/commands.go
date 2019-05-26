@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/brunograsselli/wf/config"
 	"github.com/brunograsselli/wf/git"
 	"github.com/pkg/errors"
 )
@@ -21,7 +22,7 @@ const (
 
 var remoteURLPattern = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
 
-func StartTicket(args []string) error {
+func StartTicket(args []string, config *config.Config) error {
 	status, err := git.Status()
 	if err != nil {
 		return errors.Wrap(err, "error reading git status")
@@ -58,7 +59,7 @@ func StartTicket(args []string) error {
 		return errors.Wrapf(err, "error reseting to %s", defaultRemoteAndBranch)
 	}
 
-	newBranch := newBranchName(args)
+	newBranch := newBranchName(args, config.BranchNameTemplate)
 
 	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, defaultMasterBranch)
 	if err := git.Checkout("-b", newBranch); err != nil {
@@ -75,16 +76,7 @@ func StartTicket(args []string) error {
 	return nil
 }
 
-func newBranchName(args []string) string {
-	template := os.Getenv("WF_BRANCH_NAME_TEMPLATE")
-	if template == "" {
-		template = defaultBranchNameTemplate
-	}
-
-	return fmt.Sprintf(template, args[0], strings.Join(args[1:], "-"))
-}
-
-func Push(args []string) error {
+func Push(args []string, config *config.Config) error {
 	currentBranch, err := git.CurrentBranch()
 	if err != nil {
 		return errors.Wrap(err, "error getting current branch")
@@ -103,7 +95,7 @@ func Push(args []string) error {
 	return nil
 }
 
-func OpenPullRequest(args []string) error {
+func OpenPullRequest(args []string, config *config.Config) error {
 	remoteURL, err := git.RemoteURL(defaultRemote)
 	if err != nil {
 		return errors.Wrap(err, "error getting remote url")
@@ -121,6 +113,10 @@ func OpenPullRequest(args []string) error {
 	github, user, repo := result[0][1], result[0][2], result[0][3]
 
 	return exec.Command("open", fmt.Sprintf("https://%s/%s/%s/pull/new/%s", github, user, repo, branch)).Run()
+}
+
+func newBranchName(args []string, template string) string {
+	return fmt.Sprintf(template, args[0], strings.Join(args[1:], "-"))
 }
 
 func askForConfirmation(s string) (bool, error) {

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/brunograsselli/wf/cmd"
+	"github.com/brunograsselli/wf/config"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ func main() {
 		Short: "Start a new ticket",
 		Args:  cobra.MinimumNArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.StartTicket(args); err != nil {
+			if err := cmd.StartTicket(args, config.Init()); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -30,7 +31,7 @@ func main() {
 		Use:   "push",
 		Short: "Push to remote (setup upstream)",
 		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.Push(args); err != nil {
+			if err := cmd.Push(args, config.Init()); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
@@ -41,7 +42,7 @@ func main() {
 		Use:   "pr",
 		Short: "Open a new pull request",
 		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.OpenPullRequest(args); err != nil {
+			if err := cmd.OpenPullRequest(args, config.Init()); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
