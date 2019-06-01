@@ -15,10 +15,17 @@ func main() {
 		Short: "Automated workflow tasks",
 	}
 
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "start [feature id] [description]",
-		Short: "Start a new ticket",
-		Args:  cobra.MinimumNArgs(2),
+	ticketCommand := &cobra.Command{
+		Use:     "ticket [command]",
+		Aliases: []string{"t"},
+		Short:   "[t] Commands related to tickets",
+	}
+
+	ticketCommand.AddCommand(&cobra.Command{
+		Use:     "start [ticket id] [description]",
+		Short:   "[s] Start a new ticket",
+		Aliases: []string{"s", "st"},
+		Args:    cobra.MinimumNArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
 			if err := cmd.StartTicket(args, config.Init()); err != nil {
 				fmt.Println(err)
@@ -27,9 +34,10 @@ func main() {
 		},
 	})
 
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "push",
-		Short: "Push to remote (setup upstream)",
+	ticketCommand.AddCommand(&cobra.Command{
+		Use:     "push",
+		Short:   "[p] Push to remote (setup upstream)",
+		Aliases: []string{"p"},
 		Run: func(_ *cobra.Command, args []string) {
 			if err := cmd.Push(args, config.Init()); err != nil {
 				fmt.Println(err)
@@ -38,9 +46,10 @@ func main() {
 		},
 	})
 
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "pr",
-		Short: "Open a new pull request",
+	ticketCommand.AddCommand(&cobra.Command{
+		Use:     "open-pull-request",
+		Short:   "[pr] Open a new pull request",
+		Aliases: []string{"open-pr", "pr"},
 		Run: func(_ *cobra.Command, args []string) {
 			if err := cmd.OpenPullRequest(args, config.Init()); err != nil {
 				fmt.Println(err)
@@ -48,6 +57,27 @@ func main() {
 			}
 		},
 	})
+
+	repoCommand := &cobra.Command{
+		Use:     "repository [command]",
+		Aliases: []string{"r", "repo"},
+		Short:   "[r] Commands related to the git repository",
+	}
+
+	repoCommand.AddCommand(&cobra.Command{
+		Use:     "prune",
+		Short:   "[p] Prune merged local branches and deleted remote ones",
+		Aliases: []string{"p"},
+		Run: func(_ *cobra.Command, args []string) {
+			if err := cmd.PruneBranches(args, config.Init()); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		},
+	})
+
+	rootCmd.AddCommand(ticketCommand)
+	rootCmd.AddCommand(repoCommand)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-var changedFiles = regexp.MustCompile(`[ MADRCU]{2}\s+(.*)`)
+var (
+	changedFilesRegexp = regexp.MustCompile(`[ MADRCU]{2}\s+(.*)`)
+	branchRegexp       = regexp.MustCompile(`[ *]{2}(.*)`)
+)
 
 type StatusOutput struct {
 	changedFiles []string
@@ -20,7 +23,7 @@ func Status() (*StatusOutput, error) {
 
 	status := &StatusOutput{}
 
-	result := changedFiles.FindAllStringSubmatch(string(out), -1)
+	result := changedFilesRegexp.FindAllStringSubmatch(string(out), -1)
 
 	for i := range result {
 		status.changedFiles = append(status.changedFiles, result[i][1])
@@ -31,6 +34,39 @@ func Status() (*StatusOutput, error) {
 
 func (s *StatusOutput) HasChanges() bool {
 	return len(s.changedFiles) > 0
+}
+
+func Branches(extra string) ([]*Branch, error) {
+	out, err := exec.Command("git", "branch", extra).Output()
+	if err != nil {
+		return nil, err
+	}
+
+	result := branchRegexp.FindAllStringSubmatch(string(out), -1)
+
+	var branches []*Branch
+
+	for i := range result {
+		current := string(result[i][0][0]) == "*"
+
+		branch := &Branch{
+			Name:    result[i][1],
+			Current: current,
+		}
+
+		branches = append(branches, branch)
+	}
+
+	return branches, nil
+}
+
+func DeleteBranch(name string) error {
+	return exec.Command("git", "branch", "-d", name).Run()
+}
+
+type Branch struct {
+	Name    string
+	Current bool
 }
 
 func Checkout(options ...string) error {
@@ -66,4 +102,8 @@ func Stash() error {
 
 func StashPop() error {
 	return exec.Command("git", "stash", "pop").Run()
+}
+
+func PruneRemote(remote string) error {
+	return exec.Command("git", "remote", "prune", remote).Run()
 }

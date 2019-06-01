@@ -115,6 +115,72 @@ func OpenPullRequest(args []string, config *config.Config) error {
 	return exec.Command("open", fmt.Sprintf("https://%s/%s/%s/pull/new/%s", github, user, repo, branch)).Run()
 }
 
+func PruneBranches(args []string, config *config.Config) error {
+	status, err := git.Status()
+	if err != nil {
+		return errors.Wrap(err, "error reading git status")
+	}
+
+	if status.HasChanges() {
+		return errors.New("your current branch has uncommited changes, aborting")
+
+	}
+
+	previousBranch, err := git.CurrentBranch()
+	if err != nil {
+		return errors.Wrap(err, "error getting current branch")
+	}
+
+	fmt.Printf("Updating %s branch\n", defaultMasterBranch)
+
+	if err := git.Fetch(); err != nil {
+		return errors.Wrap(err, "error fetching remote changes")
+	}
+
+	if previousBranch != defaultMasterBranch {
+		if err := git.Checkout(defaultMasterBranch); err != nil {
+			return errors.Wrapf(err, "error changing to %s branch", defaultMasterBranch)
+		}
+	}
+
+	if err := git.Reset("--hard", defaultRemoteAndBranch); err != nil {
+		return errors.Wrapf(err, "error reseting to %s", defaultRemoteAndBranch)
+	}
+
+	mergedBranches, err := git.Branches("--merged")
+	if err != nil {
+		return errors.Wrap(err, "error listing branches")
+	}
+
+	deletedPreviousBranch := false
+
+	for _, branch := range mergedBranches {
+		if branch.Current || branch.Name == defaultRemoteAndBranch {
+			continue
+		}
+
+		if branch.Name == previousBranch {
+			deletedPreviousBranch = true
+		}
+
+		fmt.Printf("* Deleting branch: %s\n", branch.Name)
+
+		git.DeleteBranch(branch.Name)
+	}
+
+	if previousBranch != defaultMasterBranch && !deletedPreviousBranch {
+		if err := git.Checkout("-"); err != nil {
+			return errors.Wrap(err, "error changing back to previous branch")
+		}
+	}
+
+	if err := git.PruneRemote(defaultRemote); err != nil {
+		return errors.Wrap(err, "error pruning remote")
+	}
+
+	return nil
+}
+
 func newBranchName(args []string, template string) string {
 	return fmt.Sprintf(template, args[0], strings.Join(args[1:], "-"))
 }
