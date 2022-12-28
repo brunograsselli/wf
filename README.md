@@ -5,7 +5,7 @@ CLI tool to automate recurring software development tasks, such as starting a ne
 ## Setup
 
 ```
-go install github.com/brunograsselli/wf@master
+go install github.com/brunograsselli/wf@main
 ```
 
 ## Usage
