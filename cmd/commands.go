@@ -14,15 +14,14 @@ import (
 )
 
 const (
-	defaultBranchNameTemplate = "%s/%s"
-	defaultMasterBranch       = "main"
-	defaultRemote             = "origin"
-	defaultRemoteAndBranch    = "origin/main"
+	defaultRemote = "origin"
 )
 
 var remoteURLPattern = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
 
 func StartTicket(args []string, config *config.Config) error {
+	mainBranch := config.MainBranch
+
 	status, err := git.Status()
 	if err != nil {
 		return errors.Wrap(err, "error reading git status")
@@ -46,22 +45,22 @@ func StartTicket(args []string, config *config.Config) error {
 		}
 	}
 
-	fmt.Printf("Updating %s branch\n", defaultMasterBranch)
-	if err := git.Checkout(defaultMasterBranch); err != nil {
-		return errors.Wrapf(err, "error changing to %s branch", defaultMasterBranch)
+	fmt.Printf("Updating %s branch\n", mainBranch)
+	if err := git.Checkout(mainBranch); err != nil {
+		return errors.Wrapf(err, "error changing to %s branch", mainBranch)
 	}
 
 	if err := git.Fetch(); err != nil {
 		return errors.Wrap(err, "error fetching remote changes")
 	}
 
-	if err := git.Reset("--hard", defaultRemoteAndBranch); err != nil {
-		return errors.Wrapf(err, "error reseting to %s", defaultRemoteAndBranch)
+	if err := git.Reset("--hard", remoteAndBranch(mainBranch)); err != nil {
+		return errors.Wrapf(err, "error reseting to %s", remoteAndBranch(mainBranch))
 	}
 
 	newBranch := newBranchName(args, config.BranchNameTemplate)
 
-	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, defaultMasterBranch)
+	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, mainBranch)
 	if err := git.Checkout("-b", newBranch); err != nil {
 		return errors.Wrapf(err, "error creating new branch '%s'", newBranch)
 	}
@@ -77,13 +76,15 @@ func StartTicket(args []string, config *config.Config) error {
 }
 
 func Push(args []string, config *config.Config) error {
+	mainBranch := config.MainBranch
+
 	currentBranch, err := git.CurrentBranch()
 	if err != nil {
 		return errors.Wrap(err, "error getting current branch")
 	}
 
-	if currentBranch == defaultMasterBranch {
-		return fmt.Errorf("current branch is %s", defaultMasterBranch)
+	if currentBranch == mainBranch {
+		return fmt.Errorf("current branch is %s", mainBranch)
 	}
 
 	if err := git.PushWithUpstream(defaultRemote, currentBranch); err != nil {
@@ -116,6 +117,8 @@ func OpenPullRequest(args []string, config *config.Config) error {
 }
 
 func PruneBranches(args []string, config *config.Config) error {
+	mainBranch := config.MainBranch
+
 	status, err := git.Status()
 	if err != nil {
 		return errors.Wrap(err, "error reading git status")
@@ -131,20 +134,20 @@ func PruneBranches(args []string, config *config.Config) error {
 		return errors.Wrap(err, "error getting current branch")
 	}
 
-	fmt.Printf("Updating %s branch\n", defaultMasterBranch)
+	fmt.Printf("Updating %s branch\n", mainBranch)
 
 	if err := git.Fetch(); err != nil {
 		return errors.Wrap(err, "error fetching remote changes")
 	}
 
-	if previousBranch != defaultMasterBranch {
-		if err := git.Checkout(defaultMasterBranch); err != nil {
-			return errors.Wrapf(err, "error changing to %s branch", defaultMasterBranch)
+	if previousBranch != mainBranch {
+		if err := git.Checkout(mainBranch); err != nil {
+			return errors.Wrapf(err, "error changing to %s branch", mainBranch)
 		}
 	}
 
-	if err := git.Reset("--hard", defaultRemoteAndBranch); err != nil {
-		return errors.Wrapf(err, "error reseting to %s", defaultRemoteAndBranch)
+	if err := git.Reset("--hard", remoteAndBranch(mainBranch)); err != nil {
+		return errors.Wrapf(err, "error reseting to %s", remoteAndBranch(mainBranch))
 	}
 
 	mergedBranches, err := git.Branches("--merged")
@@ -155,7 +158,7 @@ func PruneBranches(args []string, config *config.Config) error {
 	deletedPreviousBranch := false
 
 	for _, branch := range mergedBranches {
-		if branch.Current || branch.Name == defaultRemoteAndBranch {
+		if branch.Current || branch.Name == remoteAndBranch(mainBranch) {
 			continue
 		}
 
@@ -168,7 +171,7 @@ func PruneBranches(args []string, config *config.Config) error {
 		git.DeleteBranch(branch.Name)
 	}
 
-	if previousBranch != defaultMasterBranch && !deletedPreviousBranch {
+	if previousBranch != mainBranch && !deletedPreviousBranch {
 		if err := git.Checkout("-"); err != nil {
 			return errors.Wrap(err, "error changing back to previous branch")
 		}
@@ -198,4 +201,8 @@ func askForConfirmation(s string) (bool, error) {
 	response = strings.ToLower(strings.TrimSpace(response))
 
 	return response == "y", nil
+}
+
+func remoteAndBranch(b string) string {
+	return fmt.Sprintf("%s/%s", defaultRemote, b)
 }
