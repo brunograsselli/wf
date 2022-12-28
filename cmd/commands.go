@@ -15,9 +15,9 @@ import (
 
 const (
 	defaultBranchNameTemplate = "%s/%s"
-	defaultMasterBranch       = "master"
+	defaultMasterBranch       = "main"
 	defaultRemote             = "origin"
-	defaultRemoteAndBranch    = "origin/master"
+	defaultRemoteAndBranch    = "origin/main"
 )
 
 var remoteURLPattern = regexp.MustCompile(`git@(.*):(.*)/(.*)\.git`)
