@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/brunograsselli/wf/config"
 	"github.com/brunograsselli/wf/git"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -24,14 +24,14 @@ func StartTicket(args []string, config *config.Config) error {
 
 	status, err := git.Status()
 	if err != nil {
-		return errors.Wrap(err, "error reading git status")
+		return fmt.Errorf("error reading git status: %w", err)
 	}
 
 	hasChanges := status.HasChanges()
 	if hasChanges {
 		c, err := askForConfirmation("Found changes to be committed, would like to continue and move the changes?")
 		if err != nil {
-			return errors.Wrap(err, "error getting confirmation")
+			return fmt.Errorf("error getting confirmation: %w", err)
 		}
 
 		if !c {
@@ -41,34 +41,34 @@ func StartTicket(args []string, config *config.Config) error {
 
 		fmt.Println("Stashing changes")
 		if err := git.Stash(); err != nil {
-			return errors.Wrap(err, "error stashing changes")
+			return fmt.Errorf("error stashing changes: %w", err)
 		}
 	}
 
 	fmt.Printf("Updating %s branch\n", mainBranch)
 	if err := git.Checkout(mainBranch); err != nil {
-		return errors.Wrapf(err, "error changing to %s branch", mainBranch)
+		return fmt.Errorf("error changing to %s branch: %w", mainBranch, err)
 	}
 
 	if err := git.Fetch(); err != nil {
-		return errors.Wrap(err, "error fetching remote changes")
+		return fmt.Errorf("error fetching remote changes: %w", err)
 	}
 
 	if err := git.Reset("--hard", remoteAndBranch(mainBranch)); err != nil {
-		return errors.Wrapf(err, "error reseting to %s", remoteAndBranch(mainBranch))
+		return fmt.Errorf("error reseting to %s: %w", remoteAndBranch(mainBranch), err)
 	}
 
 	newBranch := newBranchName(args, config.BranchNameTemplate)
 
 	fmt.Printf("Creating new branch '%s' from '%s'\n", newBranch, mainBranch)
 	if err := git.Checkout("-b", newBranch); err != nil {
-		return errors.Wrapf(err, "error creating new branch '%s'", newBranch)
+		return fmt.Errorf("error creating new branch '%s': %w", newBranch, err)
 	}
 
 	if hasChanges {
 		fmt.Println("Applying changes")
 		if err := git.StashPop(); err != nil {
-			return errors.Wrap(err, "error applying changes")
+			return fmt.Errorf("error applying changes: %w", err)
 		}
 	}
 
@@ -80,7 +80,7 @@ func Push(args []string, config *config.Config) error {
 
 	currentBranch, err := git.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "error getting current branch")
+		return fmt.Errorf("error getting current branch: %w", err)
 	}
 
 	if currentBranch == mainBranch {
@@ -88,7 +88,7 @@ func Push(args []string, config *config.Config) error {
 	}
 
 	if err := git.PushWithUpstream(defaultRemote, currentBranch); err != nil {
-		return errors.Wrap(err, "error pushing to remote")
+		return fmt.Errorf("error pushing to remote: %w", err)
 	}
 
 	fmt.Printf("Pushed to %s/%s\n", defaultRemote, currentBranch)
@@ -99,12 +99,12 @@ func Push(args []string, config *config.Config) error {
 func OpenPullRequest(args []string, config *config.Config) error {
 	remoteURL, err := git.RemoteURL(defaultRemote)
 	if err != nil {
-		return errors.Wrap(err, "error getting remote url")
+		return fmt.Errorf("error getting remote url: %w", err)
 	}
 
 	branch, err := git.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "error getting current branch")
+		return fmt.Errorf("error getting current branch: %w", err)
 	}
 
 	result := remoteURLPattern.FindAllStringSubmatch(remoteURL, -1)
@@ -121,7 +121,7 @@ func PruneBranches(args []string, config *config.Config) error {
 
 	status, err := git.Status()
 	if err != nil {
-		return errors.Wrap(err, "error reading git status")
+		return fmt.Errorf("error reading git status: %w", err)
 	}
 
 	if status.HasChanges() {
@@ -131,28 +131,28 @@ func PruneBranches(args []string, config *config.Config) error {
 
 	previousBranch, err := git.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "error getting current branch")
+		return fmt.Errorf("error getting current branch: %w", err)
 	}
 
 	fmt.Printf("Updating %s branch\n", mainBranch)
 
 	if err := git.Fetch(); err != nil {
-		return errors.Wrap(err, "error fetching remote changes")
+		return fmt.Errorf("error fetching remote changes: %w", err)
 	}
 
 	if previousBranch != mainBranch {
 		if err := git.Checkout(mainBranch); err != nil {
-			return errors.Wrapf(err, "error changing to %s branch", mainBranch)
+			return fmt.Errorf("error changing to %s branch: %w", mainBranch, err)
 		}
 	}
 
 	if err := git.Reset("--hard", remoteAndBranch(mainBranch)); err != nil {
-		return errors.Wrapf(err, "error reseting to %s", remoteAndBranch(mainBranch))
+		return fmt.Errorf("error reseting to %s: %w", remoteAndBranch(mainBranch), err)
 	}
 
 	mergedBranches, err := git.Branches("--merged")
 	if err != nil {
-		return errors.Wrap(err, "error listing branches")
+		return fmt.Errorf("error listing branches: %w", err)
 	}
 
 	deletedPreviousBranch := false
@@ -173,12 +173,12 @@ func PruneBranches(args []string, config *config.Config) error {
 
 	if previousBranch != mainBranch && !deletedPreviousBranch {
 		if err := git.Checkout("-"); err != nil {
-			return errors.Wrap(err, "error changing back to previous branch")
+			return fmt.Errorf("error changing back to previous branch: %w", err)
 		}
 	}
 
 	if err := git.PruneRemote(defaultRemote); err != nil {
-		return errors.Wrap(err, "error pruning remote")
+		return fmt.Errorf("error pruning remote: %w", err)
 	}
 
 	return nil
