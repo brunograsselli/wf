@@ -26,11 +26,8 @@ func main() {
 		Short:   "[s] Start a new ticket",
 		Aliases: []string{"s", "st"},
 		Args:    cobra.MinimumNArgs(2),
-		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.StartTicket(args, config.Init()); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+		RunE: func(_ *cobra.Command, args []string) error {
+			return cmd.StartTicket(args, config.Init())
 		},
 	})
 
@@ -38,11 +35,8 @@ func main() {
 		Use:     "push",
 		Short:   "[p] Push to remote (setup upstream)",
 		Aliases: []string{"p"},
-		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.Push(args, config.Init()); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+		RunE: func(_ *cobra.Command, args []string) error {
+			return cmd.Push(args, config.Init())
 		},
 	})
 
@@ -50,11 +44,8 @@ func main() {
 		Use:     "open-pull-request",
 		Short:   "[pr] Open a new pull request",
 		Aliases: []string{"open-pr", "pr"},
-		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.OpenPullRequest(args, config.Init()); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+		RunE: func(_ *cobra.Command, args []string) error {
+			return cmd.OpenPullRequest(args, config.Init())
 		},
 	})
 
@@ -68,11 +59,8 @@ func main() {
 		Use:     "prune",
 		Short:   "[p] Prune merged local branches and deleted remote ones",
 		Aliases: []string{"p"},
-		Run: func(_ *cobra.Command, args []string) {
-			if err := cmd.PruneBranches(args, config.Init()); err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
+		RunE: func(_ *cobra.Command, args []string) error {
+			return cmd.PruneBranches(args, config.Init())
 		},
 	})
 
